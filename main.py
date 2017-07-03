@@ -39,6 +39,7 @@ FEATURES = Enum("FEATURES",
                 """ +
                 # Four major components
                 """
+                    main_activity
                     activities
                     receivers
                     providers
@@ -119,6 +120,7 @@ def get_permissions(apk, dex, analysis, f):
 
 def get_component_info(apk, dex, analysis, f):
     logging.info("get_component_info")
+    get_value_or_null_if_error(apk, "get_main_activity", FEATURES.main_activity, f)
     get_value_or_null_if_error(apk, "get_activities", FEATURES.activites, f)
     get_value_or_null_if_error(apk, "get_receivers", FEATURES.receivers, f)
     get_value_or_null_if_error(apk, "get_providers", FEATURES.providers, f)
