@@ -14,54 +14,59 @@ import pprint
 from enum import IntEnum
 from sklearn.feature_extraction import DictVectorizer
 import androlyze as ag  # Androguard
+from androguard.core import bytecodes
 
 
 FEATURES = IntEnum("FEATURES",
-                # Package basics
-                """
-                    pkg_name
-                    app_name
-                    version_code
-                    version_name
-                    apk_size
-                    apk_md5
-                    apk_sha1
-                    android_manifest
-                    max_sdk_version
-                    min_sdk_version
-                    strings
-                    icon
-                    certificates
-                    signatures
-                """ +
-                # Permissions
-                """
-                    request_aosp_permissions
-                    request_3rd_permissions
-                    declare_new_permissions
-                    dangerous_permissions
-                    privileged_permissions
-                """ +
-                # Four major components
-                """
-                    main_activity
-                    activities
-                    receivers
-                    services
-                    providers
-                    intent_filters
-                """ +
-                # File info
-                """
-                    files_with_types
-                    num_of_files
-                    images
-                    num_of_images
-                    libraries
-                    num_of_libraries
-                    embed_jar_files
-                    embed_elf_files
-                """)
+                   # Package basics
+                   """
+                       pkg_name
+                       app_name
+                       version_code
+                       version_name
+                       apk_size
+                       apk_md5
+                       apk_sha1
+                       android_manifest
+                       max_sdk_version
+                       min_sdk_version
+                       strings
+                       icon
+                       certificate
+                       signature
+                   """ +
+                   # Permissions
+                   """
+                       request_aosp_permissions
+                       request_3rd_permissions
+                       declare_new_permissions
+                       dangerous_permissions
+                       privileged_permissions
+                   """ +
+                   # Four major components
+                   """
+                       main_activity
+                       activities
+                       receivers
+                       services
+                       providers
+                       intent_filters
+                   """ +
+                   # File info
+                   """
+                       files_with_types
+                       num_of_files
+                       images
+                       num_of_images
+                       libraries
+                       num_of_libraries
+                       embed_jar_files
+                       embed_elf_files
+                   """ +
+                   # Risk Behaviors from API Analysis
+                   """
+                       risk_behaviors
+                   """)
 
 
 def prepare_arg_parser():
@@ -123,6 +128,15 @@ def get_app_icon_base64(apk, f):
         logging.exception("Fail to get icon in Base64")
 
 
+def get_cert_and_signature_base64(apk, f):
+    try:
+        cert = apk.get_certificate(apk.get_signature_name())
+        f[FEATURES.certificate] = bytecodes.apk.show_Certificate(cert)
+        f[FEATURES.signature] = base64.b64encode(apk.get_signature())
+    except Exception:
+        logging.exception("Fail to get cert and signature in Base64")
+
+
 def get_package_info(apk, dex, analysis, f):
     """
     Get the basic info of an APK.
@@ -149,6 +163,7 @@ def get_package_info(apk, dex, analysis, f):
     get_value_or_null_if_error(apk, "get_min_sdk_version", FEATURES.min_sdk_version, f)
     get_value_or_null_if_error(dex, "get_strings", FEATURES.strings, f)
     get_app_icon_base64(apk, f)
+    get_cert_and_signature_base64(apk, f)
 
 
 def get_permissions(apk, dex, analysis, f):
