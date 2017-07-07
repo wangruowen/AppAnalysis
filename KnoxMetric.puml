@@ -1,0 +1,67 @@
+@startuml
+
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam titleFontSize 28
+skinparam titleFontColor red
+
+title
+Knox Metric Data Collection Architecture
+end title
+
+left to right direction
+cloud "\nKnox Metric\nCloud Server\n" as knox_server {
+}
+
+package "Upload Agent App" as upload_app
+
+upload_app -d-> knox_server : RESTful API\nMutual Authentication
+
+node TrustZone {
+    [Unique Device Identifier]
+    [Certificate/Private Key]
+    [Unique Device Identifier] -> upload_app : Generate
+    [Certificate/Private Key] -> upload_app : Sign
+}
+
+node "Android Framework (Java Layer)" as android_framework {
+    interface "DataCollectionHelper (AIDL Interface)" as dch_interface
+    package "Data Collection Framework" {
+        database SQLiteDB
+        component "Data Collection Service" as datacollectionservice
+        datacollectionservice --> SQLiteDB
+        datacollectionservice -> [JNI Interface]
+        upload_app -d-> datacollectionservice
+        SQLiteDB -d-> JSON
+        JSON --> upload_app
+    }
+
+    [Container UI/UX] -d-> dch_interface
+    [Knox API] -d-> dch_interface
+    [PackageManagerService] -d-> dch_interface
+    [AppOpsService (Usage Stats Access)] -d-> dch_interface
+    [AccessibilityManagerService] -d-> dch_interface
+    [DevicePolicyManagerService (Device Admin)] -d-> dch_interface
+
+    dch_interface -d-> datacollectionservice
+
+    together {
+        [Container UI/UX]
+        [Knox API]
+        [AppOpsService (Usage Stats Access)]
+        [AccessibilityManagerService]
+        [DevicePolicyManagerService (Device Admin)]
+    }
+}
+
+node "Native Layer" as native_layer {
+    [Other system daemons]
+    [SELinux /proc/avc_msg]
+    [/proc/$pid/(stats|smaps|fd)]
+}
+
+[JNI Interface] -> [Other system daemons]
+[JNI Interface] -> [SELinux /proc/avc_msg]
+[JNI Interface] -> [/proc/$pid/(stats|smaps|fd)]
+
+@enduml

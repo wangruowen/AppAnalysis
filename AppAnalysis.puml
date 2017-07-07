@@ -1,0 +1,92 @@
+@startuml
+
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam titleFontSize 20
+skinparam titleFontColor red
+
+title
+Machine Learning-based Behavior Profiling and
+Threat Awareness on Large-Scale Mobile Devices
+end title
+
+cloud "Google Play" as google_play
+cloud "Chinese App Market" as chinese_app_market
+cloud "VirusShare" as virusshare
+cloud "VirusTotal" as virustotal
+component "App Collector" as app_collector
+
+google_play -d-> app_collector : Crawl
+chinese_app_market -d-> app_collector : Crawl
+virusshare -d-> app_collector : Crawl
+app_collector -u-> virustotal : Query Benign/Malicious Label\nas Basic Ground Truth
+
+node "App Analysis Engine" as app_analysis {
+    component Androguard
+    component apktool
+    component Cuckoo
+    component "Device Farm" as device_farm
+}
+
+app_collector -d-> Androguard
+app_collector -d-> apktool
+app_collector -d-> Cuckoo
+app_collector -d-> device_farm
+
+node "Hadoop Cluster" as hadoop {
+    component "Data node 1" as m1
+    component "Data node 2" as m2
+    component "Data node 3" as m3
+    component "Data node 4" as m4
+    component "Data node ...." as m5
+}
+
+interface "Feature Extraction" as feature_extract
+Androguard -d-> feature_extract : Static Analysis\n(Package Basics, CFG, Access Capability)
+apktool -d-> feature_extract
+Cuckoo -d-> feature_extract : Dynamic Analysis\n(API Callchain, SEAndroid Access Pattern, CPU/Mem/IO Fingerprint)
+device_farm -d-> feature_extract
+feature_extract -d-> m1
+feature_extract -d-> m2
+feature_extract -d-> m3
+feature_extract -d-> m4
+feature_extract -d-> m5
+
+interface "Feature Selection" as feature_select
+m1 -d-> feature_select
+m2 -d-> feature_select
+m3 -d-> feature_select
+m4 -d-> feature_select
+m5 -d-> feature_select
+
+node "GPU Cluster" as gpu {
+    component "Scikit Learn" as sklearn
+    component "Tensorflow" as tensorflow
+    component "Association Rule Learning" as association_learning
+}
+
+feature_select -d-> sklearn
+feature_select -d-> tensorflow
+feature_select -d-> association_learning
+
+node "Trained Model" as train_model
+sklearn -d-> train_model
+tensorflow -d-> train_model
+association_learning -d-> train_model
+
+interface "Feedback Loop (Knowledge Discovery)" as feedback
+association_learning -u-> feedback
+feedback -u-> m1
+feedback -u-> m2
+feedback -u-> m3
+feedback -u-> m4
+feedback -u-> m5
+
+node "On-Device Classifier, Anomaly Detection and Reporting" as device_classifier
+train_model -d-> device_classifier
+device_classifier -u-> app_collector : Report Anomaly/Outlier\nApps/Behaviors
+
+actor "IT Admin/Knox Researcher/User" as user
+device_classifier -d-> user
+
+@enduml
